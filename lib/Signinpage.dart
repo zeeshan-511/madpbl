@@ -58,7 +58,7 @@ class _SignInScreenState extends State<SignInScreen> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.55,
               decoration: BoxDecoration(
-                color: const Color(0xFFCEA7F3),
+                color: Colors.deepPurpleAccent,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(50),
                   topRight: Radius.circular(50),
@@ -82,7 +82,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pushReplacementNamed(context, '/Signuppage');
+                            Navigator.pushReplacementNamed(context, '/signup');
                           },
                           child: Text(
                             "Sign Up",
@@ -113,11 +113,11 @@ class _SignInScreenState extends State<SignInScreen> {
                         prefixIcon: Icon(Icons.email, color: Colors.white),
                         hintText: 'Email Address',
                         hintStyle: TextStyle(color: Colors.white70),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white70),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.deepPurple.shade200.withOpacity(0.3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(50),
+                          borderSide: BorderSide.none,
                         ),
                       ),
                     ),
@@ -134,13 +134,12 @@ class _SignInScreenState extends State<SignInScreen> {
                         prefixIcon: Icon(Icons.lock, color: Colors.white),
                         hintText: 'Password',
                         hintStyle: TextStyle(color: Colors.white70),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white70),
+                        filled: true,
+                        fillColor: Colors.deepPurple.shade200.withOpacity(0.3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(50),
+                          borderSide: BorderSide.none,
                         ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white),
-                        ),
-                        errorStyle: TextStyle(color: Colors.yellowAccent),
                       ),
                     ),
 
