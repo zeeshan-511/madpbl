@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:madpbl/home_screen.dart';
 import 'firebase_options.dart';
 
 import 'welcome_screen.dart';
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
         '/': (context) =>  WelcomeScreen(),
         '/signin': (context) =>  SignInScreen(),
         '/signup': (context) =>  SignUpScreen(),
+        '/home'  :(context) => HomeScreen(),
       },
     );
   }

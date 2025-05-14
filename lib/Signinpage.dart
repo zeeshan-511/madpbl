@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'home_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   @override
@@ -26,13 +27,17 @@ class _SignInScreenState extends State<SignInScreen> {
           password: _passwordController.text,
         );
 
-        // Sign in successful
+        // ✅ Sign in successful
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Successfully Signed In")),
+          const SnackBar(content: Text("Successfully Signed In")),
         );
 
-        // Navigate to your home screen or dashboard
-        // For example: Navigator.pushReplacementNamed(context, '/home');
+        // ✅ Navigate to CrudHome
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) =>  HomeScreen()),
+        );
 
       } on FirebaseAuthException catch (e) {
         String errorMessage;
@@ -54,7 +59,7 @@ class _SignInScreenState extends State<SignInScreen> {
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
         );
       } finally {
         if (mounted) {
@@ -65,6 +70,7 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     }
   }
+
 
   Future<void> _resetPassword() async {
     if (_emailController.text.isEmpty) {
@@ -228,6 +234,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         onPressed: _isLoading ? null : _validateAndLogin,
                         child: _isLoading
+
                             ? SizedBox(
                           width: 20,
                           height: 20,
@@ -239,6 +246,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             : Text(
                           "Sign In",
                           style: TextStyle(color: Colors.black, fontSize: 16),
+
                         ),
                       ),
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -10,11 +11,83 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isLoading = false;
 
-  void _validateAndSignUp() {
+  Future<void> _validateAndSignUp() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Create user with email and password
+        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        // Send email verification
+        await userCredential.user!.sendEmailVerification();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Account Created Successfully! Please verify your email.")),
+        );
+
+        // Navigate back to sign in screen
+        Navigator.pushReplacementNamed(context, '/signin');
+
+      } on FirebaseAuthException catch (e) {
+        String errorMessage;
+
+        if (e.code == 'weak-password') {
+          errorMessage = 'The password provided is too weak';
+        } else if (e.code == 'email-already-in-use') {
+          errorMessage = 'An account already exists for that email';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'Invalid email address format';
+        } else {
+          errorMessage = 'Error: ${e.message}';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Account Created Successfully!")),
+        SnackBar(content: Text("Please enter your email address first")),
+      );
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Password reset email sent")),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.code == 'user-not-found'
+              ? 'No user found with this email'
+              : 'Failed to send reset email'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -23,7 +96,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (value == null || value.isEmpty) {
       return 'Email is required';
     }
-    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
+    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    ).hasMatch(value)) {
       return 'Enter a valid email';
     }
     return null;
@@ -184,8 +258,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               borderRadius: BorderRadius.circular(30),
                             ),
                           ),
-                          onPressed: _validateAndSignUp,
-                          child: Text(
+                          onPressed: _isLoading ? null : _validateAndSignUp,
+                          child: _isLoading
+                              ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.deepPurpleAccent,
+                            ),
+                          )
+                              : Text(
                             "Sign Up",
                             style: TextStyle(color: Colors.black, fontSize: 16),
                           ),
@@ -195,11 +278,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       // Forgot Password
                       Center(
-                        child: Text(
-                          "Forgot Password?",
-                          style: TextStyle(
-                            color: Colors.white,
-                            decoration: TextDecoration.underline,
+                        child: GestureDetector(
+                          onTap: _resetPassword,
+                          child: Text(
+                            "Forgot Password?",
+                            style: TextStyle(
+                              color: Colors.white,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ),
