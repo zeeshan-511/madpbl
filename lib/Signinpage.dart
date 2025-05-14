@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignInScreen extends StatefulWidget {
   @override
@@ -10,11 +10,83 @@ class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isLoading = false;
 
-  void _validateAndLogin() {
+  Future<void> _validateAndLogin() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Sign in with Firebase auth
+        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        // Sign in successful
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Successfully Signed In")),
+        );
+
+        // Navigate to your home screen or dashboard
+        // For example: Navigator.pushReplacementNamed(context, '/home');
+
+      } on FirebaseAuthException catch (e) {
+        String errorMessage;
+
+        if (e.code == 'user-not-found') {
+          errorMessage = 'No user found with this email';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Wrong password provided';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'Invalid email format';
+        } else if (e.code == 'user-disabled') {
+          errorMessage = 'This account has been disabled';
+        } else {
+          errorMessage = 'An error occurred. Please try again.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Successfully Signed In")),
+        SnackBar(content: Text("Please enter your email address first")),
+      );
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Password reset email sent")),
+      );
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.code == 'user-not-found'
+              ? 'No user found with this email'
+              : 'Failed to send reset email'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -154,8 +226,17 @@ class _SignInScreenState extends State<SignInScreen> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        onPressed: _validateAndLogin,
-                        child: Text(
+                        onPressed: _isLoading ? null : _validateAndLogin,
+                        child: _isLoading
+                            ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.deepPurpleAccent,
+                          ),
+                        )
+                            : Text(
                           "Sign In",
                           style: TextStyle(color: Colors.black, fontSize: 16),
                         ),
@@ -164,11 +245,14 @@ class _SignInScreenState extends State<SignInScreen> {
                     SizedBox(height: 10),
 
                     Center(
-                      child: Text(
-                        "Forgot Password?",
-                        style: TextStyle(
-                          color: Colors.white,
-                          decoration: TextDecoration.underline,
+                      child: GestureDetector(
+                        onTap: _resetPassword,
+                        child: Text(
+                          "Forgot Password?",
+                          style: TextStyle(
+                            color: Colors.white,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ),
