@@ -3,6 +3,7 @@ import 'CustomBottomNav.dart';
 import 'donation_page.dart';
 import 'account_page.dart';
 import 'notification.dart';
+import 'donate_foodpage.dart';
 class Campaign {
   final String imageAsset;
   final String title;
@@ -237,6 +238,13 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _selectedActionCardIndex = index;
         });
+
+        if (index == 0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => DonateFoodPage()),
+          );
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(right: 12),
