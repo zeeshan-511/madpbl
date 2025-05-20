@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "589996260586",
+    "project_id": "food-donation-project-bcbd5",
+    "storage_bucket": "food-donation-project-bcbd5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589996260586:android:4f7fc256fc328b98b12b93",
+        "android_client_info": {
+          "package_name": "com.example.madpbl"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnyTu5JHNuCU8v2Dc3YaC-g9LfermakIg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
