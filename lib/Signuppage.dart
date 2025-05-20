@@ -8,6 +8,7 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _UsernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -122,6 +123,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
     return null;
   }
+  String? _validateUsername(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a username';
+    }
+    if (value.length < 3) {
+      return 'Username must be at least 3 characters';
+    }
+    return null;
+  }
+
 
   Widget _buildTextField({
     required IconData icon,
@@ -215,8 +226,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ],
                       ),
-
                       SizedBox(height: 20),
+
+                      //username
+
+                      _buildTextField(
+                          icon: Icons.person,
+                          hintText: "Username",
+                          controller: _UsernameController,
+                          isPassword: false,
+                          validator: _validateUsername,
+                      ),
+
+                      SizedBox(height: 10),
 
                       // Email
                       _buildTextField(
