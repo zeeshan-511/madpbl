@@ -66,4 +66,5 @@ class DefaultFirebaseOptions {
     projectId: 'food-donation-project-bcbd5',
     storageBucket: 'food-donation-project-bcbd5.firebasestorage.app',
   );
+
 }

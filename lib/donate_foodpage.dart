@@ -224,7 +224,7 @@ class _DonateFoodPageState extends State<DonateFoodPage> {
                     onSaved: (val) => _address = val,
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
-                        return 'Address is required';
+                          return 'Address is required';
                       }
                       if (!RegExp(r'^[\w\s,.-]{10,}$').hasMatch(val.trim())) {
                         return 'Enter a valid address';

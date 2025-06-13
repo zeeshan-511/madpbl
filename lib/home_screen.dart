@@ -1,19 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'CustomBottomNav.dart';
 import 'donation_page.dart';
 import 'account_page.dart';
 import 'notification.dart';
 import 'donate_foodpage.dart';
-class Campaign {
-  final String imageAsset;
+
+class Donation {
+  final String id;
+  final String imageUrl;
   final String title;
   final String subtitle;
+  final bool isActive;
 
-  Campaign({
-    required this.imageAsset,
+  Donation({
+    required this.id,
+    required this.imageUrl,
     required this.title,
     required this.subtitle,
+    required this.isActive,
   });
+
+  factory Donation.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Donation(
+      id: doc.id,
+      imageUrl: data['imageUrl'] ?? '',
+      title: data['title'] ?? '',
+      subtitle: data['subtitle'] ?? '',
+      isActive: data['isActive'] ?? true,
+    );
+  }
 }
 
 class HomeScreen extends StatefulWidget {
@@ -26,25 +43,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedActionCardIndex = -1;
 
-  // List of campaigns with non-nullable values
-  final List<Campaign> campaigns = [
-    Campaign(
-      imageAsset: 'assets/c1.jpeg',
-      title: 'Share Food in Pakistan',
-      subtitle: 'Donate excess food to help feed those in need in your community.',
-    ),
-    Campaign(
-      imageAsset: 'assets/c2.jpeg',
-      title: 'Winter Clothing Drive',
-      subtitle: 'Help keep people warm this winter by donating coats and warm clothing.',
-    ),
-    Campaign(
-      imageAsset: 'assets/c3.jpeg',
-      title: 'Books for Children',
-      subtitle: 'Donate books to help children in underprivileged schools.',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,11 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: 0,
         onTap: (index) {
           if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-            );
-          } else if (index == 1) {
+            return;
+          }// Already on Home
+          else if (index == 1) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const DonationsScreen()),
@@ -66,14 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               MaterialPageRoute(builder: (_) => const AccountPage()),
             );
-
-          }
-          else if (index == 2) {
+          } else if (index == 2) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => Notificationpage()),
             );
-            }
+          }
         },
       ),
       backgroundColor: const Color(0xFFF7F5FA),
@@ -219,13 +213,40 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // Campaign Cards List
-          Column(
-            children: campaigns.map((campaign) => buildCampaignCard(
-              campaign.imageAsset,
-              campaign.title,
-              campaign.subtitle,
-            )).toList(),
+          // Dynamic Campaign Cards from Firestore
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('Donation')
+                .where('isActive', isEqualTo: true)
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return const Center(child: Text('Error loading campaigns'));
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text('No campaigns available'));
+              }
+
+              List<Donation> campaigns = snapshot.data!.docs
+                  .map((doc) => Donation.fromFirestore(doc))
+                  .toList();
+
+              return Column(
+                children: campaigns
+                    .map((campaign) => buildCampaignCard(
+                  campaign.imageUrl,
+                  campaign.title,
+                  campaign.subtitle,
+                ))
+                    .toList(),
+              );
+            },
           ),
         ],
       ),
@@ -280,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget buildCampaignCard(String imageAsset, String title, String subtitle) {
+  Widget buildCampaignCard(String imageUrl, String title, String subtitle) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -289,17 +310,20 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: ListTile(
-        leading: Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            image: DecorationImage(
-              image: AssetImage(imageAsset),
-              fit: BoxFit.cover,
-            ),
+        leading: imageUrl.isNotEmpty
+            ? ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.network(
+            imageUrl,
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.broken_image, size: 40, color: Colors.grey),
           ),
-        ),
+        )
+            : const Icon(Icons.image, size: 40, color: Colors.grey),
+
         title: Text(title),
         subtitle: Text(
           subtitle,
