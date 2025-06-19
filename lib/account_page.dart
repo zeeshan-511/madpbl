@@ -5,6 +5,12 @@ import 'package:madpbl/notification.dart';
 import 'CustomBottomNav.dart';
 import 'Signinpage.dart';
 import 'donation_page.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -16,6 +22,10 @@ class AccountPage extends StatefulWidget {
 class _AccountPageState extends State<AccountPage> {
   User? currentUser;
   bool isLoading = true;
+  File? _profileImage;
+  final ImagePicker _picker = ImagePicker();
+  String? _uploadedImageUrl;
+
 
   @override
   void initState() {
@@ -24,11 +34,76 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _loadUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    String? imageUrl;
+
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      imageUrl = doc.data()?['profileImage'];
+    }
+
     setState(() {
-      currentUser = FirebaseAuth.instance.currentUser;
+      currentUser = user;
+      _uploadedImageUrl = imageUrl ?? user?.photoURL;
       isLoading = false;
     });
   }
+
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+
+      await _uploadToCloudinary(_profileImage!);
+    }
+  }
+  Future<void> _uploadToCloudinary(File imageFile) async {
+    const cloudName = 'dbscg7kjc';
+    const uploadPreset = 'flutter_unsigned';
+
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+
+    final request = http.MultipartRequest('POST', url)
+      ..fields['upload_preset'] = uploadPreset
+      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      final resStream = await response.stream.bytesToString();
+      final data = json.decode(resStream);
+
+      final imageUrl = data['secure_url'];
+
+      setState(() {
+        _uploadedImageUrl = imageUrl;
+      });
+
+      // ✅ Update Firebase Auth profile photo
+      await FirebaseAuth.instance.currentUser?.updatePhotoURL(imageUrl);
+
+      // ✅ Store image URL in Firestore
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set(
+          {
+            'profileImage': imageUrl,
+          },
+          SetOptions(merge: true),
+        );
+      }
+    } else {
+      print('Failed to upload image to Cloudinary. Status: ${response.statusCode}');
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -131,10 +206,37 @@ class _AccountPageState extends State<AccountPage> {
           padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(
             children: [
-              const CircleAvatar(
-                radius: 70,
-                backgroundImage: AssetImage('assets/default_profile.jpg'),
+              Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 70,
+                    backgroundImage: _uploadedImageUrl != null
+                        ? NetworkImage(_uploadedImageUrl!)
+                        : const AssetImage('assets/default_profile.jpg') as ImageProvider,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 4,
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.deepPurple,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 8),
               Text(
                 currentUser?.displayName ?? 'Username',
