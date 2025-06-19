@@ -148,6 +148,8 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
     final titleController = TextEditingController();
     final subtitleController = TextEditingController();
     final imageUrlController = TextEditingController();
+    final amountController = TextEditingController();
+    final daysLeftController = TextEditingController();
 
     showDialog(
       context: context,
@@ -176,7 +178,7 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Add Donation',
+                        'Add New Campaign',
                         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -198,6 +200,10 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
                       _buildAnimatedTextField(subtitleController, 'Campaign Description', Icons.description, maxLines: 3),
                       SizedBox(height: 16),
                       _buildAnimatedTextField(imageUrlController, 'Image URL', Icons.image),
+                      SizedBox(height: 16),
+                      _buildAnimatedTextField(amountController, 'Target Amount (\$)', Icons.monetization_on, isNumber: true),
+                      SizedBox(height: 16),
+                      _buildAnimatedTextField(daysLeftController, 'Days Left (e.g., "30 days to go")', Icons.timer),
                       SizedBox(height: 24),
                       // Buttons
                       Row(
@@ -209,7 +215,7 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
                           ),
                           SizedBox(width: 12),
                           ElevatedButton(
-                            onPressed: () => _addCampaign(titleController, subtitleController, imageUrlController),
+                            onPressed: () => _addCampaign(titleController, subtitleController, imageUrlController, amountController, daysLeftController),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.deepPurple,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -230,7 +236,99 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
     );
   }
 
-  Widget _buildAnimatedTextField(TextEditingController controller, String label, IconData icon, {int maxLines = 1}) {
+  void _showEditCampaignDialog(DocumentSnapshot campaign) {
+    final titleController = TextEditingController(text: campaign['title']);
+    final subtitleController = TextEditingController(text: campaign['subtitle']);
+    final imageUrlController = TextEditingController(text: campaign['imageUrl']);
+    final amountController = TextEditingController(text: campaign['amount']?.toString() ?? '0');
+    final daysLeftController = TextEditingController(text: campaign['daysLeft'] ?? '30 days to go');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            maxWidth: 500,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: Colors.white),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Edit Campaign',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildAnimatedTextField(titleController, 'Campaign Title', Icons.title),
+                      SizedBox(height: 16),
+                      _buildAnimatedTextField(subtitleController, 'Campaign Description', Icons.description, maxLines: 3),
+                      SizedBox(height: 16),
+                      _buildAnimatedTextField(imageUrlController, 'Image URL', Icons.image),
+                      SizedBox(height: 16),
+                      _buildAnimatedTextField(amountController, 'Target Amount (\$)', Icons.monetization_on, isNumber: true),
+                      SizedBox(height: 16),
+                      _buildAnimatedTextField(daysLeftController, 'Days Left (e.g., "30 days to go")', Icons.timer),
+                      SizedBox(height: 24),
+                      // Buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+                          ),
+                          SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () => _updateCampaign(campaign.id, titleController, subtitleController, imageUrlController, amountController, daysLeftController),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                            child: Text('Update Campaign', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedTextField(TextEditingController controller, String label, IconData icon, {int maxLines = 1, bool isNumber = false}) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: Duration(milliseconds: 600),
@@ -241,6 +339,7 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
           child: TextField(
             controller: controller,
             maxLines: maxLines,
+            keyboardType: isNumber ? TextInputType.number : TextInputType.text,
             decoration: InputDecoration(
               labelText: label,
               prefixIcon: Icon(icon, color: Colors.deepPurple),
@@ -256,13 +355,16 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
     );
   }
 
-  void _addCampaign(TextEditingController titleController, TextEditingController subtitleController, TextEditingController imageUrlController) async {
-    if (titleController.text.isNotEmpty && subtitleController.text.isNotEmpty && imageUrlController.text.isNotEmpty) {
+  void _addCampaign(TextEditingController titleController, TextEditingController subtitleController,
+      TextEditingController imageUrlController, TextEditingController amountController, TextEditingController daysLeftController) async {
+    if (titleController.text.isNotEmpty && subtitleController.text.isNotEmpty) {
       try {
         await _firestore.collection('Donation').add({
           'title': titleController.text.trim(),
           'subtitle': subtitleController.text.trim(),
           'imageUrl': imageUrlController.text.trim(),
+          'amount': double.tryParse(amountController.text) ?? 0.0,
+          'daysLeft': daysLeftController.text.isEmpty ? '30 days to go' : daysLeftController.text.trim(),
           'isActive': true,
           'createdAt': FieldValue.serverTimestamp(),
         });
@@ -272,8 +374,59 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
         _showSnackBar('Error adding campaign: ${e.toString()}', Colors.red);
       }
     } else {
-      _showSnackBar('Please fill all fields', Colors.orange);
+      _showSnackBar('Please fill in required fields', Colors.orange);
     }
+  }
+
+  void _updateCampaign(String campaignId, TextEditingController titleController, TextEditingController subtitleController,
+      TextEditingController imageUrlController, TextEditingController amountController, TextEditingController daysLeftController) async {
+    if (titleController.text.isNotEmpty && subtitleController.text.isNotEmpty) {
+      try {
+        await _firestore.collection('Donation').doc(campaignId).update({
+          'title': titleController.text.trim(),
+          'subtitle': subtitleController.text.trim(),
+          'imageUrl': imageUrlController.text.trim(),
+          'amount': double.tryParse(amountController.text) ?? 0.0,
+          'daysLeft': daysLeftController.text.isEmpty ? '30 days to go' : daysLeftController.text.trim(),
+        });
+        Navigator.pop(context);
+        _showSnackBar('Campaign updated successfully!', Colors.green);
+      } catch (e) {
+        _showSnackBar('Error updating campaign: ${e.toString()}', Colors.red);
+      }
+    } else {
+      _showSnackBar('Please fill in required fields', Colors.orange);
+    }
+  }
+
+  void _deleteCampaign(String campaignId) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Campaign'),
+        content: Text('Are you sure you want to delete this campaign? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _firestore.collection('Donation').doc(campaignId).delete();
+                Navigator.pop(context);
+                _showSnackBar('Campaign deleted successfully!', Colors.green);
+              } catch (e) {
+                Navigator.pop(context);
+                _showSnackBar('Error deleting campaign: ${e.toString()}', Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSnackBar(String message, Color color) {
@@ -381,11 +534,11 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
-                                        image: DecorationImage(
+                                        image: campaign['imageUrl'].isNotEmpty ? DecorationImage(
                                           image: NetworkImage(campaign['imageUrl']),
                                           fit: BoxFit.cover,
                                           onError: (error, stackTrace) {},
-                                        ),
+                                        ) : null,
                                       ),
                                       child: campaign['imageUrl'].isEmpty ? Icon(Icons.image, color: Colors.grey) : null,
                                     ),
@@ -395,6 +548,11 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
                                       children: [
                                         SizedBox(height: 4),
                                         Text(campaign['subtitle'], maxLines: 2, overflow: TextOverflow.ellipsis),
+                                        SizedBox(height: 4),
+                                        Text('\$${(campaign['amount'] ?? 0.0).toStringAsFixed(0)}',
+                                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepPurple)),
+                                        Text(campaign['daysLeft'] ?? '30 days to go',
+                                            style: TextStyle(color: Colors.grey, fontSize: 12)),
                                         SizedBox(height: 8),
                                         Container(
                                           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -409,7 +567,38 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
                                         ),
                                       ],
                                     ),
-                                    trailing: Icon(Icons.more_vert, color: Colors.deepPurple),
+                                    trailing: PopupMenuButton<String>(
+                                      onSelected: (value) {
+                                        if (value == 'edit') {
+                                          _showEditCampaignDialog(campaign);
+                                        } else if (value == 'delete') {
+                                          _deleteCampaign(campaign.id);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit, color: Colors.blue),
+                                              SizedBox(width: 8),
+                                              Text('Edit'),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete, color: Colors.red),
+                                              SizedBox(width: 8),
+                                              Text('Delete'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      icon: Icon(Icons.more_vert, color: Colors.deepPurple),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -428,7 +617,6 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
     );
   }
 }
-
 class RequestsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
