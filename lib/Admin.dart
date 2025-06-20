@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'contact_messages_page.dart';
+import 'package:intl/intl.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -70,11 +71,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             _buildDrawerItem(Icons.person, 'Users', UsersPage()),
             _buildDrawerItem(Icons.fastfood, 'Donations', DonationsPage()),
             _buildDrawerItem(Icons.list_alt, 'Requests', RequestsPage()),
-            _buildDrawerItem(Icons.people, 'NGO Agents', AgentsPage()),
-            _buildDrawerItem(Icons.mail, 'Contact Messages', ContactMessagesPage()),
             _buildDrawerItem(Icons.notifications, 'Notifications', NotificationsPage()),
-            _buildDrawerItem(Icons.card_giftcard, 'Rewards', RewardsPage()),
-            _buildDrawerItem(Icons.settings, 'Settings', SettingsPage()),
             Divider(),
             ListTile(
               leading: Icon(Icons.logout),
@@ -617,44 +614,168 @@ class _DonationsPageState extends State<DonationsPage> with TickerProviderStateM
     );
   }
 }
-class RequestsPage extends StatelessWidget {
+
+class RequestsPage extends StatefulWidget {
+  @override
+  _RequestsPageState createState() => _RequestsPageState();
+}
+
+class _RequestsPageState extends State<RequestsPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<void> _updateDonationStatus(String donationId, String newStatus) async {
+    try {
+      await _firestore.collection('donations').doc(donationId).update({
+        'status': newStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Status updated to $newStatus')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating status: ${e.toString()}')),
+      );
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Approved':
+        return Colors.green;
+      case 'Denied':
+        return Colors.red;
+      case 'Picked':
+        return Colors.orange;
+      case 'Delivered':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildStatusDropdown(String currentStatus, String donationId) {
+    return DropdownButton<String>(
+      value: currentStatus,
+      icon: Icon(Icons.arrow_drop_down),
+      elevation: 16,
+      style: TextStyle(color: Colors.deepPurple),
+      underline: Container(height: 2, color: Colors.deepPurple),
+      onChanged: (String? newValue) {
+        if (newValue != null) {
+          _updateDonationStatus(donationId, newValue);
+        }
+      },
+      items: <String>['Pending', 'Approved', 'Denied', 'Picked', 'Delivered']
+          .map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Donation Requests from Users'));
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Donation Requests'),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firestore.collection('donations').orderBy('submittedAt', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error loading donations'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No donation requests found'));
+          }
+
+          return ListView.builder(
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final donation = snapshot.data!.docs[index];
+              final data = donation.data() as Map<String, dynamic>;
+
+              // Parse the date safely
+              DateTime? pickupDate;
+              try {
+                pickupDate = DateTime.parse(data['pickupDateTime']);
+              } catch (e) {
+                pickupDate = null;
+              }
+
+              return Card(
+                margin: EdgeInsets.all(8),
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${data['foodType']} (${data['quantity']} ${data['unit']})',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(data['status']).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _getStatusColor(data['status']),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              data['status'],
+                              style: TextStyle(
+                                color: _getStatusColor(data['status']),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Text('Pickup: ${pickupDate != null ? DateFormat('MMM dd, yyyy - hh:mm a').format(pickupDate) : 'Date not available'}'),
+                      SizedBox(height: 4),
+                      Text('Address: ${data['address'] ?? 'Not provided'}'),
+                      SizedBox(height: 4),
+                      if (data['instructions'] != null && data['instructions'].isNotEmpty)
+                        Text('Instructions: ${data['instructions']}'),
+                      SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Contact: ${data['contactNo'] ?? 'Not provided'}'),
+                          _buildStatusDropdown(data['status'], donation.id),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
 
-class AgentsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Manage NGO Agents and Volunteers'));
-  }
-}
 
-class ReportsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Analytics and Monthly Reports'));
-  }
-}
+
 
 class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(child: Text('Send and Manage App Notifications'));
-  }
-}
-
-class RewardsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('User Rewards & Top-Ups'));
-  }
-}
-
-class SettingsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('App Settings and Configuration'));
   }
 }

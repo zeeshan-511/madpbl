@@ -59,6 +59,7 @@ class _SignInScreenState extends State<SignInScreen> {
           SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       } catch (e) {
+        print(e);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
         );
