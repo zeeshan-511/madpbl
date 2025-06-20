@@ -10,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'edit_profile_page.dart'; // Import the new edit profile page
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -25,7 +25,7 @@ class _AccountPageState extends State<AccountPage> {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   String? _uploadedImageUrl;
-
+  String _displayName = 'Username'; // Store display name locally
 
   @override
   void initState() {
@@ -36,6 +36,7 @@ class _AccountPageState extends State<AccountPage> {
   Future<void> _loadUser() async {
     final user = FirebaseAuth.instance.currentUser;
     String? imageUrl;
+    String? name;
 
     if (user != null) {
       final doc = await FirebaseFirestore.instance
@@ -43,11 +44,13 @@ class _AccountPageState extends State<AccountPage> {
           .doc(user.uid)
           .get();
       imageUrl = doc.data()?['profileImage'];
+      name = doc.data()?['displayName'] ?? user.displayName; // Prioritize Firestore, then Auth
     }
 
     setState(() {
       currentUser = user;
       _uploadedImageUrl = imageUrl ?? user?.photoURL;
+      _displayName = name ?? 'Username'; // Set local display name
       isLoading = false;
     });
   }
@@ -63,6 +66,7 @@ class _AccountPageState extends State<AccountPage> {
       await _uploadToCloudinary(_profileImage!);
     }
   }
+
   Future<void> _uploadToCloudinary(File imageFile) async {
     const cloudName = 'dbscg7kjc';
     const uploadPreset = 'flutter_unsigned';
@@ -103,8 +107,6 @@ class _AccountPageState extends State<AccountPage> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,12 +116,12 @@ class _AccountPageState extends State<AccountPage> {
           if (index == 0) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => HomeScreen()),
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
             );
           } else if (index == 1) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => DonationsScreen()),
+              MaterialPageRoute(builder: (_) => const DonationsScreen()),
             );
           } else if (index == 2) {
             Navigator.pushReplacement(
@@ -138,7 +140,7 @@ class _AccountPageState extends State<AccountPage> {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => HomeScreen()),
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
             );
           },
         ),
@@ -169,15 +171,13 @@ class _AccountPageState extends State<AccountPage> {
             style: TextStyle(fontSize: 18),
           ),
           const SizedBox(height: 20),
-      ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => SignInScreen()),
-          );
-        },
-        child: Text("Go to Login"),
-
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SignInScreen()),
+              );
+            },
             style: ElevatedButton.styleFrom(
               foregroundColor: Colors.black,
               backgroundColor: const Color(0xFFCEA7F3),
@@ -186,6 +186,7 @@ class _AccountPageState extends State<AccountPage> {
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
+            child: const Text("Go to Login"),
           ),
         ],
       ),
@@ -236,10 +237,9 @@ class _AccountPageState extends State<AccountPage> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 8),
               Text(
-                currentUser?.displayName ?? 'Username',
+                _displayName, // Use local _displayName
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -255,8 +255,21 @@ class _AccountPageState extends State<AccountPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      // Edit profile
+                    onPressed: () async {
+                      // Navigate to EditProfilePage
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfilePage(
+                            currentDisplayName: _displayName,
+                          ),
+                        ),
+                      );
+
+                      // If a change was made and saved, reload user data to reflect it
+                      if (result == true) {
+                        await _loadUser();
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.black,
@@ -269,20 +282,6 @@ class _AccountPageState extends State<AccountPage> {
                     child: const Text('Edit Profile'),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Top up
-                    },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    child: const Text('Top up'),
-                  ),
                 ],
               ),
             ],
@@ -320,6 +319,8 @@ class _AccountPageState extends State<AccountPage> {
                   await FirebaseAuth.instance.signOut();
                   setState(() {
                     currentUser = null;
+                    _uploadedImageUrl = null;
+                    _displayName = 'Username'; // Reset display name
                   });
                 },
               ),
