@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
-
+import 'orgotPasswordScreen.dart'; // Adjust path if needed
+import 'package:google_sign_in/google_sign_in.dart';
 class SignInScreen extends StatefulWidget {
   @override
   _SignInScreenState createState() => _SignInScreenState();
@@ -167,8 +168,8 @@ class _SignInScreenState extends State<SignInScreen> {
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
+                             // fontWeight: FontWeight.bold,
+                             // decoration: TextDecoration.underline,
                             ),
                           ),
                         ),
@@ -234,7 +235,6 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         onPressed: _isLoading ? null : _validateAndLogin,
                         child: _isLoading
-
                             ? SizedBox(
                           width: 20,
                           height: 20,
@@ -246,24 +246,29 @@ class _SignInScreenState extends State<SignInScreen> {
                             : Text(
                           "Sign In",
                           style: TextStyle(color: Colors.black, fontSize: 16),
-
                         ),
                       ),
                     ),
                     SizedBox(height: 10),
 
                     Center(
-                      child: GestureDetector(
-                        onTap: _resetPassword,
-                        child: Text(
-                          "Forgot Password?",
-                          style: TextStyle(
-                            color: Colors.white,
-                            decoration: TextDecoration.underline,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.g_mobiledata, color: Colors.red),
+                        label: Text(
+                          "Sign in with Google",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
                         ),
+                        onPressed: () => signInWithGoogle(context),
                       ),
                     ),
+
                   ],
                 ),
               ),
@@ -271,6 +276,34 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+Future<void> signInWithGoogle(BuildContext context) async {
+  try {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) {
+      // Cancelled by user
+      return;
+    }
+
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    await FirebaseAuth.instance.signInWithCredential(credential);
+
+    // ✅ Navigate to home screen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomeScreen()),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Google sign-in failed: $e")),
     );
   }
 }

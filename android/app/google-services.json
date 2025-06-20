@@ -12,7 +12,20 @@
           "package_name": "com.example.madpbl"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "589996260586-rdcdbau75ml2igsiee015sl5i62n4c35.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.madpbl",
+            "certificate_hash": "c16c37b5bce4c50528dcc5fb11e4a20f36ee6911"
+          }
+        },
+        {
+          "client_id": "589996260586-0h44j33806i9d4sqitts8t0vq7mh3828.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAnyTu5JHNuCU8v2Dc3YaC-g9LfermakIg"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589996260586-0h44j33806i9d4sqitts8t0vq7mh3828.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "589996260586-23pq8v1ebi6ufvda1vi2uni0v46nc545.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.madpbl"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +56,12 @@
           "package_name": "com.example.tuorist_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "589996260586-0h44j33806i9d4sqitts8t0vq7mh3828.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAnyTu5JHNuCU8v2Dc3YaC-g9LfermakIg"
@@ -39,7 +69,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "589996260586-0h44j33806i9d4sqitts8t0vq7mh3828.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "589996260586-23pq8v1ebi6ufvda1vi2uni0v46nc545.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.madpbl"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
+import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth if you want to link messages to users
 
 class ContactUsPage extends StatefulWidget {
   const ContactUsPage({Key? key}) : super(key: key);
@@ -19,6 +20,11 @@ class _ContactUsPageState extends State<ContactUsPage> {
 
   bool _isSending = false; // To show loading indicator and prevent multiple submissions
 
+  // Assuming you have a way to get the current user's ID
+  // For demonstration, let's use a dummy user ID. In a real app,
+  // you'd get this from Firebase Authentication.
+  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous_user';
+
   @override
   void dispose() {
     // Dispose controllers when the widget is removed from the widget tree
@@ -27,6 +33,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
     _messageController.dispose();
     super.dispose();
   }
+
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Email is required';
@@ -37,6 +44,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
     }
     return null;
   }
+
   Future<void> _sendMessage() async {
     // Validate all fields in the form
     if (!_formKey.currentState!.validate()) {
@@ -61,11 +69,13 @@ class _ContactUsPageState extends State<ContactUsPage> {
 
       // Add data to Firestore
       await FirebaseFirestore.instance.collection('contactMessages').add({
+        'userId': _currentUserId, // Associate message with a user
         'name': name,
         'email': email,
         'message': message,
         'timestamp': FieldValue.serverTimestamp(), // Add a timestamp
         'isRead': false, // Add a flag for admin to mark as read
+        'adminReply': null, // Initialize adminReply as null -- THIS IS CRUCIAL FOR NEW MESSAGES
       });
 
       // Show a confirmation SnackBar
@@ -209,6 +219,125 @@ class _ContactUsPageState extends State<ContactUsPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 40),
+              const Text(
+                'Your Previous Messages & Replies',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
+              ),
+              const SizedBox(height: 10),
+              // StreamBuilder to fetch and display messages
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('contactMessages')
+                    .where('userId', isEqualTo: _currentUserId) // Filter by current user
+                    .orderBy('timestamp', descending: true) // Order by latest message
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text('You haven\'t sent any messages yet.'));
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true, // Important for nested list views
+                    physics: const NeverScrollableScrollPhysics(), // Disable scrolling for nested list
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      final messageData = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+
+                      // SAFELY ACCESS adminReply
+                      final String userMessage = messageData['message'] ?? 'No message';
+                      final String? adminReply = messageData.containsKey('adminReply')
+                          ? messageData['adminReply'] as String? // Cast to String?
+                          : null; // If field doesn't exist, treat as null
+
+                      final Timestamp? timestamp = messageData['timestamp'] as Timestamp?;
+                      final formattedDate = timestamp != null
+                          ? '${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year} ${timestamp.toDate().hour}:${timestamp.toDate().minute}'
+                          : 'N/A';
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8.0),
+                        elevation: 3,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sent on: $formattedDate',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Your Message:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                userMessage,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              // Display admin reply only if it's not null and not empty
+                              if (adminReply != null && adminReply.isNotEmpty)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 15),
+                                    const Divider(),
+                                    const SizedBox(height: 10),
+                                    const Text(
+                                      'Admin Reply:',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blueAccent,
+                                      ),
+                                    ),
+                                    Text(
+                                      adminReply,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 15),
+                                    const Divider(),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'No reply from admin yet.',
+                                      style: TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -216,6 +345,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
     );
   }
 
+  // This function is not used in the final build, but keeping it for completeness if needed elsewhere.
   Widget _buildContactInfoRow({
     required IconData icon,
     required String title,

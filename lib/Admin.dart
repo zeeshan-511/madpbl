@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
-
+import 'contact_messages_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -71,7 +71,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             _buildDrawerItem(Icons.fastfood, 'Donations', DonationsPage()),
             _buildDrawerItem(Icons.list_alt, 'Requests', RequestsPage()),
             _buildDrawerItem(Icons.people, 'NGO Agents', AgentsPage()),
-            _buildDrawerItem(Icons.pie_chart, 'Reports', ReportsPage()),
+            _buildDrawerItem(Icons.mail, 'Contact Messages', ContactMessagesPage()),
             _buildDrawerItem(Icons.notifications, 'Notifications', NotificationsPage()),
             _buildDrawerItem(Icons.card_giftcard, 'Rewards', RewardsPage()),
             _buildDrawerItem(Icons.settings, 'Settings', SettingsPage()),

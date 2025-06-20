@@ -219,13 +219,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
+                                //fontWeight: FontWeight.bold,
+                                //decoration: TextDecoration.underline,
                               ),
                             ),
                           ),
                         ],
                       ),
+
                       SizedBox(height: 20),
 
                       //username
