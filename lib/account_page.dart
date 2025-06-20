@@ -11,7 +11,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'edit_profile_page.dart'; // Import the new edit profile page
-
+import 'AboutUsPage.dart';
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
 
@@ -308,9 +308,14 @@ class _AccountPageState extends State<AccountPage> {
                 onTap: () {},
               ),
               _ListTileItem(
-                icon: Icons.settings,
-                title: 'Settings',
-                onTap: () {},
+                icon: Icons.info,
+                title: 'About Us',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AboutUsPage()),
+                  );
+                },
               ),
               _ListTileItem(
                 icon: Icons.logout,
