@@ -3,14 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(AdminPanelApp());
-}
+import 'package:madpbl/contact_messages_page.dart';
 
 class AdminPanelApp extends StatelessWidget {
   @override
@@ -26,6 +19,8 @@ class AdminPanelApp extends StatelessWidget {
     );
   }
 }
+
+// ... (your existing imports and main function)
 
 class AdminHomeScreen extends StatefulWidget {
   @override
@@ -71,7 +66,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             _buildDrawerItem(Icons.person, 'Users', UsersPage()),
             _buildDrawerItem(Icons.fastfood, 'Donations', DonationsPage()),
             _buildDrawerItem(Icons.list_alt, 'Requests', RequestsPage()),
+
+            // --- CHANGE THIS LINE ---
+            _buildDrawerItem(Icons.mail, 'Contact Messages',  ContactMessagesPage()),
+
+            // Changed icon and page
+            // _buildDrawerItem(Icons.pie_chart, 'Reports', ReportsPage()), // You can keep ReportsPage if you still need it for other reports
             _buildDrawerItem(Icons.notifications, 'Notifications', NotificationsPage()),
+
+
             Divider(),
             ListTile(
               leading: Icon(Icons.logout),
@@ -93,6 +96,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 }
+
+// ... (Rest of your existing classes: DashboardPage, UsersPage, DonationsPage, RequestsPage, AgentsPage, ReportsPage, NotificationsPage, RewardsPage, SettingsPage)
 
 class DashboardPage extends StatelessWidget {
   @override
