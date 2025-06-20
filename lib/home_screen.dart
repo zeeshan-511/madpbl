@@ -5,6 +5,7 @@ import 'donation_page.dart';
 import 'account_page.dart';
 import 'notification.dart';
 import 'donate_foodpage.dart';
+import'Request_food.dart';
 
 class Donation {
   final String id;
@@ -266,7 +267,13 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (context) => DonateFoodPage()),
           );
         }
-      },
+        else if (index == 1)
+          {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => RequestFoodPage()),
+          );
+      }
+              },
       child: Container(
         margin: const EdgeInsets.only(right: 12),
         width: 90,

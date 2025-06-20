@@ -63,7 +63,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
             _buildDrawerItem(Icons.dashboard, 'Dashboard', DashboardPage()),
-            _buildDrawerItem(Icons.person, 'Users', UsersPage()),
+            _buildDrawerItem(Icons.person, 'Users Food Requests', UsersPage()),
             _buildDrawerItem(Icons.fastfood, 'Donations', DonationsPage()),
             _buildDrawerItem(Icons.list_alt, 'Requests', RequestsPage()),
 
@@ -106,10 +106,277 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-class UsersPage extends StatelessWidget {
+class UsersPage extends StatefulWidget {
+  @override
+  _UsersPageState createState() => _UsersPageState();
+}
+
+class _UsersPageState extends State<UsersPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<void> _updateRequestStatus(String requestId, String newStatus) async {
+    try {
+      await _firestore.collection('Foodrequests').doc(requestId).update({
+        'status': newStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Request status updated to $newStatus'),
+          backgroundColor: Colors.green, // Provide visual feedback
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating status: ${e.toString()}'),
+          backgroundColor: Colors.red, // Provide visual feedback
+        ),
+      );
+    }
+  }
+
+  // NEW: Method to delete a request
+  Future<void> _deleteRequest(String requestId) async {
+    // Show a confirmation dialog before deleting
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Request'),
+        content: const Text('Are you sure you want to delete this food request? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), // User canceled
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true), // User confirmed
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _firestore.collection('Foodrequests').doc(requestId).delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Food request deleted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Approved':
+        return Colors.green;
+      case 'Denied':
+        return Colors.red;
+      case 'Picked Up': // Assuming a "Picked Up" status for food requests
+        return Colors.orange;
+      case 'Delivered':
+        return Colors.blue;
+      case 'Pending': // Added Pending for completeness
+        return Colors.grey;
+      default:
+        return Colors.purple; // For any unrecognised status
+    }
+  }
+
+  Widget _buildStatusDropdown(String currentStatus, String requestId) {
+    return Container( // Wrap dropdown in Container for styling
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: _getStatusColor(currentStatus).withOpacity(0.1), // Light background based on status
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _getStatusColor(currentStatus)),
+      ),
+      child: DropdownButtonHideUnderline( // Hides the default underline
+        child: DropdownButton<String>(
+          value: currentStatus,
+          icon: Icon(Icons.arrow_drop_down, color: _getStatusColor(currentStatus)),
+          elevation: 8, // Less elevation for a cleaner look
+          style: TextStyle(color: _getStatusColor(currentStatus), fontWeight: FontWeight.bold),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              _updateRequestStatus(requestId, newValue);
+            }
+          },
+          items: <String>['Pending', 'Approved', 'Denied', 'Picked Up', 'Delivered'] // Define your statuses
+              .map<DropdownMenuItem<String>>((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Manage Users Here'));
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Users Food Requests'),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        elevation: 0, // Removed elevation for a flat look
+        centerTitle: true, // Center the title
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firestore.collection('Foodrequests').orderBy('submittedAt', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.fastfood, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No food requests found', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final request = snapshot.data!.docs[index];
+              final data = request.data() as Map<String, dynamic>;
+
+              DateTime? deliveryDateTime;
+              try {
+                if (data['deliveryDateTime'] is String) {
+                  deliveryDateTime = DateTime.parse(data['deliveryDateTime']);
+                } else if (data['deliveryDateTime'] is Timestamp) {
+                  deliveryDateTime = (data['deliveryDateTime'] as Timestamp).toDate();
+                }
+              } catch (e) {
+                // Handle parsing error, e.g., if date string is malformed
+                print('Error parsing pickupDateTime for request ${request.id}: ${data['pickupDateTime']} - $e');
+                deliveryDateTime = null;
+              }
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                elevation: 6,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${data['foodType'] ?? 'N/A'} (${data['quantity'] ?? 'N/A'} ${data['unit'] ?? 'N/A'})',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // NEW: PopupMenuButton for actions (e.g., Delete)
+                          PopupMenuButton<String>(
+                            onSelected: (value) {
+                              if (value == 'delete') {
+                                _deleteRequest(request.id);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete Request'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16, thickness: 1),
+                      _buildInfoRow(Icons.person, 'Requester Name', data['requesterName']),
+                      _buildInfoRow(Icons.email, 'Requester Email', data['requesterEmail']),
+                      _buildInfoRow(Icons.phone, 'Requester Phone', data['RequesterPhone']),
+                      _buildInfoRow(Icons.location_on, 'Deliever Address', data['deliveryAddress']),
+                      _buildInfoRow(
+                        Icons.calendar_today,
+                        'Delievery Date/Time',
+                        deliveryDateTime != null
+                            ? DateFormat('MMM dd, yyyy - hh:mm a').format(deliveryDateTime) // Added year for clarity
+                            : 'Not specified',
+                      ),
+                      if (data['notes'] != null && data['notes'].isNotEmpty)
+                        _buildInfoRow(Icons.notes, 'Notes', data['notes']),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: _buildStatusDropdown(data['status'] ?? 'Pending', request.id),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$label:',
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+                ),
+                Text(
+                  value ?? 'N/A', // Display 'N/A' if value is null
+                  style: TextStyle(color: Colors.grey[800]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
