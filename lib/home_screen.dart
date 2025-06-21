@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'CustomBottomNav.dart';
@@ -6,6 +8,9 @@ import 'account_page.dart';
 import 'notification.dart';
 import 'donate_foodpage.dart';
 import'Request_food.dart';
+import 'user_sessions_page.dart';
+import 'contact_us_page.dart';
+import 'topup_balance_page.dart';
 
 class Donation {
   final String id;
@@ -82,24 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.w900,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.card_giftcard, size: 16),
-              label: const Text('Rewards'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE6D8FB),
-                foregroundColor: Colors.deepPurple,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: _buildHomeContent(),
     );
@@ -130,7 +117,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => DonateFoodPage()),
+                    );
+                  },
                   child: const Text('Donate Now'),
                 ),
                 const SizedBox(height: 10),
@@ -171,12 +163,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TopUpBalancePage()),
+                    );
+                  },
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('Top up Balance'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE6D8FB),
                     foregroundColor: Colors.deepPurple,
+
                   ),
                 ),
               ],
@@ -199,8 +197,8 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 buildActionCard(Icons.food_bank, 'Donate Food', 0),
                 buildActionCard(Icons.request_page, 'Request Food', 1),
-                buildActionCard(Icons.local_shipping, 'NGO Agent', 2),
-                buildActionCard(Icons.group, 'Community', 3),
+                buildActionCard(Icons.volunteer_activism, 'Volunteer Sessions', 2),
+                buildActionCard(Icons.contact_emergency, 'Help and Contact', 3),
               ],
             ),
           ),
@@ -273,6 +271,19 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (context) => RequestFoodPage()),
           );
       }
+        else if (index == 2)
+        {
+          Navigator.push(context,
+            MaterialPageRoute(builder: (context) => UserVolunteerSessionsPage()),
+          );
+        }
+        else if (index == 3)
+        {
+          Navigator.push(context,
+            MaterialPageRoute(builder: (context) => ContactUsPage() ),
+          );
+        }
+
               },
       child: Container(
         margin: const EdgeInsets.only(right: 12),

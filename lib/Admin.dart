@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'firebase_options.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
 import 'package:madpbl/contact_messages_page.dart';
+import 'package:madpbl/volunteer_sessions_page.dart';
 
 class AdminPanelApp extends StatelessWidget {
   @override
@@ -67,8 +66,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             _buildDrawerItem(Icons.fastfood, 'Donations', DonationsPage()),
             _buildDrawerItem(Icons.list_alt, 'Requests', RequestsPage()),
 
+
             // --- CHANGE THIS LINE ---
             _buildDrawerItem(Icons.mail, 'Contact Messages',  ContactMessagesPage()),
+           _buildDrawerItem(Icons.volunteer_activism, 'Volunteer Sessions', VolunteerSessionsPage()),
 
             // Changed icon and page
             // _buildDrawerItem(Icons.pie_chart, 'Reports', ReportsPage()), // You can keep ReportsPage if you still need it for other reports
