@@ -66,15 +66,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             _buildDrawerItem(Icons.fastfood, 'Donations', DonationsPage()),
             _buildDrawerItem(Icons.list_alt, 'Requests', RequestsPage()),
 
-
             // --- CHANGE THIS LINE ---
-            _buildDrawerItem(Icons.mail, 'Contact Messages',  ContactMessagesPage()),
-           _buildDrawerItem(Icons.volunteer_activism, 'Volunteer Sessions', VolunteerSessionsPage()),
+            _buildDrawerItem(Icons.mail, 'Contact Messages', ContactMessagesPage()),
+            _buildDrawerItem(Icons.volunteer_activism, 'Volunteer Sessions', VolunteerSessionsPage()),
 
             // Changed icon and page
             // _buildDrawerItem(Icons.pie_chart, 'Reports', ReportsPage()), // You can keep ReportsPage if you still need it for other reports
             _buildDrawerItem(Icons.notifications, 'Notifications', NotificationsPage()),
-
 
             Divider(),
             ListTile(
@@ -98,12 +96,337 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 }
 
-// ... (Rest of your existing classes: DashboardPage, UsersPage, DonationsPage, RequestsPage, AgentsPage, ReportsPage, NotificationsPage, RewardsPage, SettingsPage)
+// ... (Rest of your existing classes: UsersPage, DonationsPage, RequestsPage, AgentsPage, ReportsPage, NotificationsPage, RewardsPage, SettingsPage)
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
+  @override
+  _DashboardPageState createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Welcome to PlatePromise Admin Dashboard'));
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('Overview'),
+          SizedBox(height: 16),
+          _buildDashboardGrid(context),
+          SizedBox(height: 32),
+          _buildSectionTitle('Recent Activity'),
+          SizedBox(height: 16),
+          _buildRecentRequestsCard(),
+          SizedBox(height: 16),
+          _buildRecentDonationsCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: Colors.deepPurple,
+      ),
+    );
+  }
+
+  Widget _buildDashboardGrid(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      children: [
+        _buildSummaryCard(
+          context,
+          'Users Query',
+          Icons.group,
+          _firestore.collection('contactMessages').snapshots(),
+              (snapshot) => snapshot.docs.length,
+          Colors.blueAccent,
+        ),
+        _buildSummaryCard(
+          context,
+          'Food Requests',
+          Icons.fastfood,
+          _firestore.collection('Foodrequests').snapshots(),
+              (snapshot) => snapshot.docs.length,
+          Colors.orangeAccent,
+        ),
+        _buildSummaryCard(
+          context,
+          'Total Donations',
+          Icons.volunteer_activism,
+          _firestore.collection('Donation').snapshots(),
+              (snapshot) => snapshot.docs.length,
+          Colors.greenAccent,
+        ),
+        _buildSummaryCard(
+          context,
+          'Pending Requests',
+          Icons.pending_actions,
+          _firestore.collection('Foodrequests').where('status', isEqualTo: 'Pending').snapshots(),
+              (snapshot) => snapshot.docs.length,
+          Colors.redAccent,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard(BuildContext context, String title, IconData icon, Stream<QuerySnapshot> stream,
+      int Function(QuerySnapshot) countBuilder, Color color) {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [color.withOpacity(0.8), color],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: InkWell(
+          onTap: () {
+            // Optional: Navigate to respective pages on tap
+            if (title == 'Users Query') {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ContactMessagesPage())); // Assuming you have a UsersListPage
+            } else if (title == 'Food Requests' || title == 'Pending Requests') {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => UsersPage()));
+            } else if (title == 'Total Donations') {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => DonationsPage()));
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 40, color: Colors.white),
+                SizedBox(height: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                SizedBox(height: 8),
+                StreamBuilder<QuerySnapshot>(
+                  stream: stream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator(color: Colors.white);
+                    }
+                    if (snapshot.hasError) {
+                      return Text('Error', style: TextStyle(color: Colors.white));
+                    }
+                    final count = countBuilder(snapshot.data!);
+                    return Text(
+                      count.toString(),
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentRequestsCard() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recent Food Requests',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+            ),
+            SizedBox(height: 16),
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('Foodrequests').orderBy('submittedAt', descending: true).limit(5).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator(color: Colors.deepPurple));
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading requests'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No recent food requests.'));
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    var request = snapshot.data!.docs[index];
+                    var data = request.data() as Map<String, dynamic>;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.assignment, color: Colors.grey),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${data['foodType']} - ${data['requesterName']}',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text('Status: ${data['status']}', style: TextStyle(color: _getStatusColor(data['status']))),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            data['submittedAt'] != null
+                                ? DateFormat('MMM dd, hh:mm a')
+                                .format((data['submittedAt'] as Timestamp).toDate())
+                                : 'N/A',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => UsersPage()));
+                },
+                child: Text('View All Requests >', style: TextStyle(color: Colors.deepPurple)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentDonationsCard() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recent Donations',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+            ),
+            SizedBox(height: 16),
+            StreamBuilder<QuerySnapshot>(
+              stream: _firestore.collection('Donation').orderBy('createdAt', descending: true).limit(5).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator(color: Colors.deepPurple));
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading donations'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No recent donations.'));
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    var donation = snapshot.data!.docs[index];
+                    var data = donation.data() as Map<String, dynamic>;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.attach_money, color: Colors.green),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  data['title'] ?? 'N/A',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'Amount: \$${(data['amount'] ?? 0.0).toStringAsFixed(0)}',
+                                  style: TextStyle(color: Colors.green),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            data['createdAt'] != null
+                                ? DateFormat('MMM dd, hh:mm a')
+                                .format((data['createdAt'] as Timestamp).toDate())
+                                : 'N/A',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => DonationsPage()));
+                },
+                child: Text('View All Donations >', style: TextStyle(color: Colors.deepPurple)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Approved':
+        return Colors.green;
+      case 'Denied':
+        return Colors.red;
+      case 'Picked Up':
+        return Colors.orange;
+      case 'Delivered':
+        return Colors.blue;
+      case 'Pending':
+        return Colors.grey;
+      default:
+        return Colors.purple;
+    }
   }
 }
 
@@ -144,7 +467,8 @@ class _UsersPageState extends State<UsersPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Request'),
-        content: const Text('Are you sure you want to delete this food request? This action cannot be undone.'),
+        content:
+        const Text('Are you sure you want to delete this food request? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false), // User canceled
@@ -179,7 +503,6 @@ class _UsersPageState extends State<UsersPage> {
     }
   }
 
-
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Approved':
@@ -198,19 +521,23 @@ class _UsersPageState extends State<UsersPage> {
   }
 
   Widget _buildStatusDropdown(String currentStatus, String requestId) {
-    return Container( // Wrap dropdown in Container for styling
+    return Container(
+      // Wrap dropdown in Container for styling
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: _getStatusColor(currentStatus).withOpacity(0.1), // Light background based on status
+        color:
+        _getStatusColor(currentStatus).withOpacity(0.1), // Light background based on status
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _getStatusColor(currentStatus)),
       ),
-      child: DropdownButtonHideUnderline( // Hides the default underline
+      child: DropdownButtonHideUnderline(
+        // Hides the default underline
         child: DropdownButton<String>(
           value: currentStatus,
           icon: Icon(Icons.arrow_drop_down, color: _getStatusColor(currentStatus)),
           elevation: 8, // Less elevation for a cleaner look
-          style: TextStyle(color: _getStatusColor(currentStatus), fontWeight: FontWeight.bold),
+          style:
+          TextStyle(color: _getStatusColor(currentStatus), fontWeight: FontWeight.bold),
           onChanged: (String? newValue) {
             if (newValue != null) {
               _updateRequestStatus(requestId, newValue);
@@ -239,7 +566,8 @@ class _UsersPageState extends State<UsersPage> {
         centerTitle: true, // Center the title
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('Foodrequests').orderBy('submittedAt', descending: true).snapshots(),
+        stream:
+        _firestore.collection('Foodrequests').orderBy('submittedAt', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Colors.deepPurple));
@@ -275,8 +603,8 @@ class _UsersPageState extends State<UsersPage> {
                   deliveryDateTime = (data['deliveryDateTime'] as Timestamp).toDate();
                 }
               } catch (e) {
-
-                print('Error parsing pickupDateTime for request ${request.id}: ${data['pickupDateTime']} - $e');
+                print(
+                    'Error parsing pickupDateTime for request ${request.id}: ${data['pickupDateTime']} - $e');
                 deliveryDateTime = null;
               }
 
@@ -295,7 +623,10 @@ class _UsersPageState extends State<UsersPage> {
                           Expanded(
                             child: Text(
                               '${data['foodType'] ?? 'N/A'} (${data['quantity'] ?? 'N/A'} ${data['unit'] ?? 'N/A'})',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.deepPurple),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -956,7 +1287,8 @@ class _RequestsPageState extends State<RequestsPage> {
         title: Text('Donation Requests'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('donations').orderBy('submittedAt', descending: true).snapshots(),
+        stream:
+        _firestore.collection('donations').orderBy('submittedAt', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -1042,9 +1374,6 @@ class _RequestsPageState extends State<RequestsPage> {
     );
   }
 }
-
-
-
 
 class NotificationsPage extends StatelessWidget {
   @override
