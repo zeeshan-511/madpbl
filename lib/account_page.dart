@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:madpbl/Admin.dart';
+import 'package:madpbl/donate_foodpage.dart';
 import 'package:madpbl/home_screen.dart';
 import 'package:madpbl/notification.dart';
+import 'package:madpbl/orgotPasswordScreen.dart';
 import 'CustomBottomNav.dart';
 import 'Signinpage.dart';
 import 'donation_page.dart';
@@ -12,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'edit_profile_page.dart'; // Import the new edit profile page
 import 'AboutUsPage.dart';
+import 'donation_history_page.dart';
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
 
@@ -295,17 +299,32 @@ class _AccountPageState extends State<AccountPage> {
               _ListTileItem(
                 icon: Icons.favorite,
                 title: 'My donation',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => DonationHistoryPage()),
+                  );
+                },
               ),
               _ListTileItem(
-                icon: Icons.notifications_active,
-                title: 'Donation reminder',
-                onTap: () {},
+                icon: Icons.food_bank,
+                title: 'Donate Food',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => DonateFoodPage()),
+                  );
+                },
               ),
               _ListTileItem(
                 icon: Icons.vpn_key,
-                title: 'Change password',
-                onTap: () {},
+                title: 'Forget Password',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ForgotPasswordScreen()),
+                  );
+                },
               ),
               _ListTileItem(
                 icon: Icons.info,

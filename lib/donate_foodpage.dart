@@ -199,12 +199,6 @@ class _DonateFoodPageState extends State<DonateFoodPage> {
       appBar: AppBar(
         title: Text("Donate Food"),
         leading: BackButton(),
-        actions: [
-          Icon(Icons.location_on_outlined),
-          SizedBox(width: 10),
-          Center(child: Text("Current Location")),
-          SizedBox(width: 12),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

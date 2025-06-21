@@ -11,6 +11,7 @@ import'Request_food.dart';
 import 'user_sessions_page.dart';
 import 'contact_us_page.dart';
 import 'topup_balance_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Donation {
   final String id;
@@ -48,6 +49,19 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedActionCardIndex = -1;
+  late Future<double> _balanceFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _balanceFuture = _fetchDonationBalance();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _balanceFuture = _fetchDonationBalance();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (index) {
           if (index == 0) {
             return;
-          }// Already on Home
-          else if (index == 1) {
+          } else if (index == 1) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const DonationsScreen()),
@@ -98,7 +111,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Spotlight Section
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -120,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => DonateFoodPage()),
+                      MaterialPageRoute(builder: (_) => DonationsScreen()),
                     );
                   },
                   child: const Text('Donate Now'),
@@ -137,7 +149,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Donation Balance Section
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -148,40 +159,57 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Donation balance:'),
-                    SizedBox(height: 5),
-                    Text(
-                      '\$215.00',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                    const Text('Donation balance:'),
+                    const SizedBox(height: 5),
+                    FutureBuilder<double>(
+                      future: _balanceFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        } else if (snapshot.hasError) {
+                          return const Text("Error fetching balance");
+                        } else {
+                          final balance = snapshot.data ?? 0.0;
+                          return Text(
+                            '\$${balance.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const TopUpBalancePage()),
+                      MaterialPageRoute(builder: (_) => TopUpBalancePage()),
                     );
+                    setState(() {
+                      _balanceFuture = _fetchDonationBalance();
+                    });
                   },
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('Top up Balance'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE6D8FB),
                     foregroundColor: Colors.deepPurple,
-
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          // Become a Food Donor Section
           const Text(
             'Become a Food Donor Today',
             style: TextStyle(
@@ -203,7 +231,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Latest Campaigns Section
           const Text(
             'Latest News',
             style: TextStyle(
@@ -212,7 +239,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          // Dynamic Campaign Cards from Firestore
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('Donation')
@@ -238,10 +264,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
               return Column(
                 children: campaigns
-                    .map((campaign) => buildCampaignCard(
-                  campaign.imageUrl,
-                  campaign.title,
-                  campaign.subtitle,
+                    .map((campaign) => GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DonationsScreen(),
+                      ),
+                    );
+                  },
+                  child: buildCampaignCard(
+                    campaign.imageUrl,
+                    campaign.title,
+                    campaign.subtitle,
+                  ),
                 ))
                     .toList(),
               );
@@ -264,27 +300,23 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(builder: (context) => DonateFoodPage()),
           );
-        }
-        else if (index == 1)
-          {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (context) => RequestFoodPage()),
+        } else if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => RequestFoodPage()),
           );
-      }
-        else if (index == 2)
-        {
-          Navigator.push(context,
+        } else if (index == 2) {
+          Navigator.push(
+            context,
             MaterialPageRoute(builder: (context) => UserVolunteerSessionsPage()),
           );
-        }
-        else if (index == 3)
-        {
-          Navigator.push(context,
-            MaterialPageRoute(builder: (context) => ContactUsPage() ),
+        } else if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ContactUsPage()),
           );
         }
-
-              },
+      },
       child: Container(
         margin: const EdgeInsets.only(right: 12),
         width: 90,
@@ -320,20 +352,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildCampaignCard(String imageUrl, String title, String subtitle) {
-    return GestureDetector(
-        onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => DonateFoodPage()),
-      );
-    },
-    child: Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    decoration: BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: Colors.grey.shade300),
-    ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
       child: ListTile(
         leading: imageUrl.isNotEmpty
             ? ClipRRect(
@@ -348,7 +373,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         )
             : const Icon(Icons.image, size: 40, color: Colors.grey),
-
         title: Text(title),
         subtitle: Text(
           subtitle,
@@ -357,7 +381,32 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       ),
-    )
     );
   }
+}
+
+Future<double> _fetchDonationBalance() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return 0.0;
+
+  double totalTopUps = 0.0;
+  double totalTransfers = 0.0;
+
+  final topupsSnap = await FirebaseFirestore.instance
+      .collection('topups')
+      .where('email', isEqualTo: user.email)
+      .get();
+  for (var doc in topupsSnap.docs) {
+    totalTopUps += double.tryParse(doc['amount'].toString()) ?? 0.0;
+  }
+
+  final transfersSnap = await FirebaseFirestore.instance
+      .collection('transfers')
+      .where('email', isEqualTo: user.email)
+      .get();
+  for (var doc in transfersSnap.docs) {
+    totalTransfers += double.tryParse(doc['amount'].toString()) ?? 0.0;
+  }
+
+  return totalTopUps - totalTransfers;
 }
