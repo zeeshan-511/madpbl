@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:madpbl/Admin.dart';
 import 'package:madpbl/donate_foodpage.dart';
 import 'package:madpbl/home_screen.dart';
-import 'package:madpbl/notification.dart';
+import 'package:madpbl/TransferHistory.dart';
 import 'package:madpbl/orgotPasswordScreen.dart';
 import 'CustomBottomNav.dart';
 import 'Signinpage.dart';
@@ -130,7 +129,7 @@ class _AccountPageState extends State<AccountPage> {
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => Notificationpage()),
+              MaterialPageRoute(builder: (_) => TransferHistoryPage()),
             );
           }
         },

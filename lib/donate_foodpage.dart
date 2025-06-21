@@ -10,7 +10,7 @@ import 'CustomBottomNav.dart';
 import 'donation_page.dart';
 import 'account_page.dart';
 import 'home_screen.dart';
-import 'notification.dart';
+import 'TransferHistory.dart';
 
 class DonateFoodPage extends StatefulWidget {
   @override
@@ -191,7 +191,7 @@ class _DonateFoodPageState extends State<DonateFoodPage> {
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => Notificationpage()),
+              MaterialPageRoute(builder: (_) => TransferHistoryPage()),
             );
           }
         },

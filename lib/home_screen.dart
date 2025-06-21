@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'CustomBottomNav.dart';
 import 'donation_page.dart';
 import 'account_page.dart';
-import 'notification.dart';
+import 'TransferHistory.dart';
 import 'donate_foodpage.dart';
 import'Request_food.dart';
 import 'user_sessions_page.dart';
@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => Notificationpage()),
+              MaterialPageRoute(builder: (_) => TransferHistoryPage()),
             );
           }
         },

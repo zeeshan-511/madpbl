@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:madpbl/Signinpage.dart';
 import 'package:madpbl/contact_messages_page.dart';
 import 'package:madpbl/volunteer_sessions_page.dart';
 
@@ -72,13 +73,36 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
             // Changed icon and page
             // _buildDrawerItem(Icons.pie_chart, 'Reports', ReportsPage()), // You can keep ReportsPage if you still need it for other reports
-            _buildDrawerItem(Icons.notifications, 'Notifications', NotificationsPage()),
+            _buildDrawerItem(Icons.history, 'Transfer History', TransferHistory()),
 
             Divider(),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Logout'),
-              onTap: () {},
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Logout'),
+                    content: Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => SignInScreen()),
+                          );
+                        },
+                        child: Text('Logout'),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -1375,9 +1399,197 @@ class _RequestsPageState extends State<RequestsPage> {
   }
 }
 
-class NotificationsPage extends StatelessWidget {
+class TransferHistory extends StatelessWidget {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  DateTime? _parseTimestamp(dynamic timestamp) {
+    if (timestamp == null) return null;
+    if (timestamp is Timestamp) return timestamp.toDate();
+    if (timestamp is String) return DateTime.tryParse(timestamp);
+    return null;
+  }
+
+  String _formatDate(dynamic date) {
+    try {
+      if (date is String) {
+        return DateFormat('MMM dd, yyyy – hh:mm a').format(DateTime.parse(date));
+      } else if (date is Timestamp) {
+        return DateFormat('MMM dd, yyyy – hh:mm a').format(date.toDate());
+      }
+      return 'Invalid date';
+    } catch (e) {
+      return 'Date format error';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Colors.green;
+      case 'paid':
+        return Colors.blue;
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.blueGrey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Icons.check_circle;
+      case 'paid':
+        return Icons.payment;
+      case 'failed':
+        return Icons.error;
+      default:
+        return Icons.hourglass_empty;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Send and Manage App Notifications'));
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: _firestore.collection('transfers').orderBy('timestamp', descending: true).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('Error loading transfers: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(child: Text("No transfers found", style: TextStyle(color: Colors.grey)));
+            }
+
+            return ListView.builder(
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                var doc = snapshot.data!.docs[index];
+                var data = doc.data() as Map<String, dynamic>;
+
+                return Card(
+                  elevation: 3,
+                  margin: EdgeInsets.symmetric(vertical: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "\$${data['amount']?.toStringAsFixed(2) ?? '0.00'}",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  data['email'] ?? 'Unknown user',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Icon(
+                                  _getStatusIcon(data['status'] ?? 'paid'),
+                                  color: _getStatusColor(data['status'] ?? 'paid'),
+                                  size: 18,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  data['status']?.toString().toUpperCase() ?? 'PAID',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: _getStatusColor(data['status'] ?? 'paid'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        if (data['campaignTitle'] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.campaign, size: 16, color: Colors.grey),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    data['campaignTitle']!,
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              Icon(Icons.person, size: 16, color: Colors.grey),
+                              SizedBox(width: 8),
+                              Text(
+                                "Donor: ${data['donorName'] ?? 'Anonymous'}",
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                            SizedBox(width: 8),
+                            Text(
+                              _formatDate(data['timestamp']),
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        if (data['message'] != null && data['message'].isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.message, size: 16, color: Colors.grey),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    data['message'],
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
   }
 }

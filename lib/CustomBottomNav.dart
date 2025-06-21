@@ -30,7 +30,7 @@ class CustomBottomNav extends StatelessWidget {
           children: [
             _buildNavItem(Icons.home, 'Home', 0),
             _buildNavItem(Icons.favorite, 'Donate', 1),
-            _buildNavItem(Icons.notifications, 'Notifications', 2),
+            _buildNavItem(Icons.history, 'Transfer Hisotry', 2),
             _buildNavItem(Icons.person, 'Account', 3),
           ],
         ),

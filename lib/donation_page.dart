@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:madpbl/notification.dart';
+import 'package:madpbl/TransferHistory.dart';
 import 'CustomBottomNav.dart';
 import 'account_page.dart';
 import 'home_screen.dart';
@@ -173,10 +173,16 @@ class _DonationsScreenState extends State<DonationsScreen> {
 
                   await FirebaseFirestore.instance.collection('transfers').add({
                     'email': user?.email,
+                    'donorName': nameController.text.trim(),
                     'campaignId': campaign.id,
+                    'campaignTitle': campaign.title,
+                    'campaignSubtitle': campaign.subtitle,
+                    'imageUrl': campaign.imageUrl,
                     'amount': enteredAmount,
+                    'message': messageController.text.trim(),
                     'timestamp': FieldValue.serverTimestamp(),
                   });
+
 
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -211,7 +217,7 @@ class _DonationsScreenState extends State<DonationsScreen> {
                 context, MaterialPageRoute(builder: (_) => const HomeScreen()));
           } else if (index == 2) {
             Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => Notificationpage()));
+                context, MaterialPageRoute(builder: (_) => TransferHistoryPage()));
           } else if (index == 3) {
             Navigator.pushReplacement(
                 context, MaterialPageRoute(builder: (_) => const AccountPage()));
