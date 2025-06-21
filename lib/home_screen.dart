@@ -320,13 +320,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildCampaignCard(String imageUrl, String title, String subtitle) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+    return GestureDetector(
+        onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DonateFoodPage()),
+      );
+    },
+    child: Container(
+    margin: const EdgeInsets.only(bottom: 10),
+    decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: Colors.grey.shade300),
+    ),
       child: ListTile(
         leading: imageUrl.isNotEmpty
             ? ClipRRect(
@@ -350,6 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       ),
+    )
     );
   }
 }

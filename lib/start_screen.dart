@@ -22,10 +22,10 @@ class _StartScreenState extends State<StartScreen>
   void initState() {
     super.initState();
 
-    // Initialize animation controllers
     _fadeController = AnimationController(
       duration: Duration(milliseconds: 1500),
       vsync: this,
+
     );
 
     _slideController = AnimationController(
